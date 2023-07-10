@@ -1,4 +1,7 @@
-/* Base styles & resets */
+
+* {
+  box-sizing: border-box;
+}/* Base styles & resets */
 
 html {
   font-family: 'Roboto Slab', serif;

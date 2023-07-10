@@ -18,6 +18,7 @@ input, textarea, select {
   padding: 0.5rem;
   border-radius: 4px;
   border: 1px solid rgb(204, 204, 204);
+  width: 100%;
 }
 
 input:focus,
@@ -31,4 +32,5 @@ input, textarea {
 
 .form-control {
   margin: 0.5rem 0;
+  width: 100%;
 }
