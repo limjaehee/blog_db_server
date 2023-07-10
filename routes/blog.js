@@ -9,21 +9,45 @@ router.get("/", (req, res) => {
 });
 
 router.get("/posts", async (req, res) => {
-  const [posts] = await db.query(
-    "SELECT * FROM posts INNER JOIN authors ON posts.author_id = authors.id"
-  );
-
+  const query = `
+    SELECT posts.*, authors.name AS author_name FROM posts 
+    INNER JOIN authors ON posts.author_id = authors.id 
+  `;
+  const [posts] = await db.query(query);
   res.render("posts-list", {
     posts: posts,
   });
 });
 
-router.get("/post/:id", async (req, res) => {
-  const id = req.params.id;
-  const [post] = await db.query(`SELECT * FROM posts WHERE id = ${id}`);
+router.get("/posts/:id", async (req, res) => {
+  //템플릿에서 나중에 엑세스하고 있는 데이터 종류를 명확히 하기 위함
+  const query = `
+    SELECT posts.*, authors.name AS author_name, authors.email AS author_email FROM posts 
+    INNER JOIN authors ON posts.author_id = authors.id
+    WHERE posts.id = ?
+  `;
+  //두번째 값은 물음표를 대체하여 쿼리문에 삽입된다.
+  const [posts] = await db.query(query, [req.params.id]);
+
+  //url 수동 입력 시
+  if (!posts || posts.length === 0) {
+    return res.status(404).render("404");
+  }
+
+  //날짜 수정
+  const postData = {
+    ...posts[0],
+    date: posts[0].date.toISOString(),
+    humanReadableDate: posts[0].date.toLocaleDateString("ko-KR", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+  };
 
   res.render("post-detail", {
-    post: post[0],
+    post: postData,
   });
 });
 
@@ -45,8 +69,52 @@ router.post("/posts", async (req, res) => {
   //물음표는 전달된 배열에서 제공하는 값으로 자동 대체된다.
   await db.query(
     "INSERT INTO posts (title, summary, body, author_id) VALUES (?)",
-    [data]
+    [data],
   );
+
+  res.redirect("/posts");
+});
+
+router.get("/posts/:id/edit", async (req, res) => {
+  const query = `
+    SELECT * FROM posts WHERE id = ?
+  `;
+
+  const [posts] = await db.query(query, [req.params.id]);
+
+  if (!posts || posts.length === 0) {
+    return res.status(404).render("404");
+  }
+
+  res.render("update-post", {
+    post: posts[0],
+  });
+});
+
+router.post("/posts/:id/edit", async (req, res) => {
+  const query = `
+    UPDATE posts
+    SET title = ?, summary = ?, body = ?
+    WHERE id = ?
+  `;
+
+  await db.query(query, [
+    req.body.title,
+    req.body.summary,
+    req.body.content,
+    req.params.id,
+  ]);
+
+  res.redirect("/posts");
+});
+
+router.post("/posts/:id/delete", async (req, res) => {
+  const query = `
+    DELETE FROM posts
+    WHERE id = ?
+  `;
+
+  await db.query(query, [req.params.id]);
 
   res.redirect("/posts");
 });
